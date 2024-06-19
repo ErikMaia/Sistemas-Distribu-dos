@@ -49,6 +49,9 @@ class Bar:
         self.pedidos = [[] for _ in range(num_garcons)]
         self.rodada = 0
 
+        # Mutex para controlar o acesso à lista de pedidos
+        self.mutex_pedidos = threading.Lock()
+
         for i in range(self.num_clientes):
             cliente = Cliente(f"Cliente {i+1}", self)
             self.clientes.append(cliente)
@@ -59,7 +62,8 @@ class Bar:
 
     def faz_pedido(self, cliente):
         garcom_index = random.randint(0, self.num_garcons - 1)
-        self.pedidos[garcom_index].append(cliente)
+        with self.mutex_pedidos:
+            self.pedidos[garcom_index].append(cliente)
         print(f"{cliente.nome} fez um pedido.")
 
     def espera_pedido(self, cliente):
@@ -68,12 +72,12 @@ class Bar:
                 break
 
     def recebe_pedido(self, cliente):
-        for i, pedidos_garcom in enumerate(self.pedidos):
-            if cliente in pedidos_garcom:
-                garcom_index = i
-                print(
-                    f"{self.garcons[garcom_index].nome} recebeu o pedido de {cliente.nome}.")
-                break
+        with self.mutex_pedidos:
+            for i, pedidos_garcom in enumerate(self.pedidos):
+                if cliente in pedidos_garcom:
+                    garcom_index = i
+                    print(f"{self.garcons[garcom_index].nome} recebeu o pedido de {cliente.nome}.")
+                    break
 
     def consome_pedido(self, cliente):
         print(f"{cliente.nome} está consumindo seu pedido.")
@@ -85,12 +89,13 @@ class Bar:
 
     def registra_pedidos(self, garcom):
         garcom_index = self.garcons.index(garcom)
-        pedidos = self.pedidos[garcom_index]
-        print(f"{garcom.nome} está registrando pedidos.")
-        for cliente in pedidos:
-            print(f"{garcom.nome} está atendendo o pedido de {cliente.nome}.")
-            self.pedidos[garcom_index].remove(cliente)
-        print(f"{garcom.nome} atendeu todos os pedidos.")
+        with self.mutex_pedidos:
+            pedidos = self.pedidos[garcom_index]
+            print(f"{garcom.nome} está registrando pedidos.")
+            for cliente in pedidos:
+                print(f"{garcom.nome} está atendendo o pedido de {cliente.nome}.")
+                self.pedidos[garcom_index].remove(cliente)
+            print(f"{garcom.nome} atendeu todos os pedidos.")
 
     def iniciar_simulacao(self):
         for garcom in self.garcons:
@@ -99,6 +104,8 @@ class Bar:
             cliente.start()
 
         while self.rodada < self.num_rodadas:
+            if(self.rodada<0):
+                print(f'fim da rodada: {self.rodada}')
             print(f"Rodada {self.rodada + 1}:")
             time.sleep(1)  # Simula o tempo de uma rodada
             self.rodada += 1
@@ -116,6 +123,6 @@ class Bar:
 
 
 # Exemplo de utilização
-bar = Bar(num_clientes=10, num_garcons=2,
-          capacidade_atendimento=3, num_rodadas=5)
+bar = Bar(num_clientes=5, num_garcons=2,
+          capacidade_atendimento=3, num_rodadas=3)
 bar.iniciar_simulacao()
