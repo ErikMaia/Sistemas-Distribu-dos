@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problema do Banco</title>
+    <style>
+        body {
+            margin: auto;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        footer {
+            display: flex;
+            align-items: stretch;
+            position: absolute;
+            bottom: 10vh;
+            width: 100vw;
+            justify-content: space-around;
+        }
+        footer button {
+            background-color: rgb(0, 119, 255);
+            padding: 10px 50px;
+            color: aliceblue;
+            border: 0;
+            border-radius: 6%;
+        }
+        #saldo, #deposito, #saque {
+            display: none;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="saldo">
+        <h1>Saldo</h1>
+        <span id="value-saldo"></span>
+    </div>
+
+    <form id="deposito">
+        <h1>Deposito</h1>
+        <input type="text" id="deposito-input" name="Deposito">
+        <button type="button" id="deposito-button">Depositar</button>
+    </form>
+    
+    <form id="saque">
+        <h1>Saque</h1>
+        <input type="text" id="saque-input" name="Saque">
+        <button type="button" id="saque-button">Sacar</button>
+    </form>
+
+    <footer>
+        <button type="button" id="btn-deposito">Depósito</button>
+        <button type="button" id="btn-saque">Saque</button>
+        <button type="button" id="btn-saldo">Saldo</button>
+        <button type="button" id="btn-sair">Sair</button>
+    </footer>
+
+    <script>
+        let socket = new WebSocket('ws://localhost:8765/');
+        let valueSaldo = document.getElementById('value-saldo');
+        let saldoDiv = document.getElementById('saldo');
+        let depositoForm = document.getElementById('deposito');
+        let saqueForm = document.getElementById('saque');
+
+        document.getElementById('btn-deposito').addEventListener('click', () => {
+            saldoDiv.style.display = 'none';
+            depositoForm.style.display = 'block';
+            saqueForm.style.display = 'none';
+        });
+
+        document.getElementById('btn-saque').addEventListener('click', () => {
+            saldoDiv.style.display = 'none';
+            depositoForm.style.display = 'none';
+            saqueForm.style.display = 'block';
+        });
+
+        document.getElementById('btn-saldo').addEventListener('click', () => {
+            saldoDiv.style.display = 'block';
+            depositoForm.style.display = 'none';
+            saqueForm.style.display = 'none';
+            socket.send(JSON.stringify({"action": "balance", "account_id": "123"}));
+        });
+
+        document.getElementById('btn-sair').addEventListener('click', () => {
+            socket.send(JSON.stringify({"action": "exit", "account_id": "123"}));
+        });
+
+        document.getElementById('deposito-button').addEventListener('click', () => {
+            let amount = document.getElementById('deposito-input').value;
+            socket.send(JSON.stringify({"action": "deposit", "account_id": "123", "amount": parseFloat(amount)}));
+        });
+
+        document.getElementById('saque-button').addEventListener('click', () => {
+            let amount = document.getElementById('saque-input').value;
+            socket.send(JSON.stringify({"action": "withdraw", "account_id": "123", "amount": parseFloat(amount)}));
+        });
+
+        socket.onmessage = (event) => {
+            let response = JSON.parse(event.data);
+            if (response.status === "success" && response.balance !== undefined) {
+                valueSaldo.textContent = `R$ ${response.balance}`;
+            }
+        };
+    </script>
+</body>
+</html>
